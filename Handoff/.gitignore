@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+handoff.db
+instance/
+.DS_Store
+.flask_secret
+*.db-wal
+*.db-shm

@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A complete, printable Handoff briefing with context, pickup receipt, and event trail.">
+  <title>{{ h.task_title }} — Handoff</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="detail-page">
+<a class="skip-link" href="#main">Skip to main content</a>
+<main id="main" class="briefing-wrap">
+  <a class="back-link" href="{{ url_for('dashboard') }}#handoffs">← Back to Handoff</a>
+  {% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}<div class="flash-stack" aria-live="polite">{% for category, message in messages %}<div class="flash {{ category }}">{{ message }}</div>{% endfor %}</div>{% endif %}{% endwith %}
+  <header class="briefing-header"><div><div class="section-kicker">HANDOFF BRIEFING · #{{ h.id }}</div><h1>{{ h.task_title }}</h1><p>{{ h.project }}{% if h.team_name %} · Team: {{ h.team_name }}{% endif %} · Sent {{ h.created_at }}</p></div><span class="handoff-status hs-{{ h.status|lower|replace(' ', '-') }}">{{ h.status }}</span></header>
+  <section class="briefing-meta"><div><span>FROM</span><strong>{{ h.from_person }}</strong></div><div><span>TO</span><strong>{{ h.to_person or 'Unassigned' }}</strong></div><div><span>CURRENT OWNER</span><strong>{{ h.task_owner or 'Task deleted / standalone handoff' }}</strong></div><div><span>DEADLINE</span><strong>{{ h.deadline or 'Not set' }}</strong></div></section>
+  <section class="briefing-section"><h2>What got done</h2><p class="preserve-lines">{{ h.completed }}</p></section>
+  <section class="briefing-section"><h2>What's next</h2><p class="preserve-lines">{{ h.next_steps }}</p></section>
+  <section class="briefing-two"><div class="briefing-section"><h2>Blockers / decisions</h2><p class="preserve-lines">{{ h.blockers or 'None listed.' }}</p></div><div class="briefing-section"><h2>Links and files</h2><p class="preserve-lines">{{ h.links or 'None listed.' }}</p></div></section>
+  <section class="gap-panel" aria-live="polite"><div class="briefing-section-head"><div><div class="section-kicker">RULE-BASED · NOT AI</div><h2>Context-gap check</h2></div><strong>{{ gaps|length }} gap{{ '' if gaps|length == 1 else 's' }} to review</strong></div>
+    {% if gaps %}<ul>{% for gap in gaps %}<li><strong>{{ gap.title }}</strong><span>{{ gap.detail }}</span></li>{% endfor %}</ul>{% else %}<p>No obvious context gaps detected by the checklist. A teammate should still verify the details.</p>{% endif %}
+    <p class="muted-note">This checklist flags common omissions; it cannot verify whether the handoff is factually correct.</p>
+  </section>
+  {% if h.status == 'Ready to pick up' %}
+  <section class="pickup-panel"><div><div class="section-kicker">RECEIVER CONFIRMATION</div><h2>Ready to take the baton?</h2><p>Confirm pickup to record who accepted responsibility and update the linked task owner.</p></div><form method="post" action="{{ url_for('accept_handoff', handoff_id=h.id) }}"><label for="receiver">Your name</label><input id="receiver" name="receiver" maxlength="100" required value="{{ h.to_person }}" placeholder="Name of teammate accepting"><button class="primary-button" type="submit">Accept handoff →</button></form></section>
+  {% elif h.accepted_by %}<p class="accepted-note">✓ Accepted by <strong>{{ h.accepted_by }}</strong>{% if h.accepted_at %} on {{ h.accepted_at }}{% endif %}</p>{% endif %}
+  <section class="briefing-section"><h2>Ask a question</h2><form class="question-form" method="post" action="{{ url_for('ask_handoff_question', handoff_id=h.id) }}"><label for="actor">Your name</label><input id="actor" name="actor" maxlength="100" required placeholder="Who is asking?"><label for="question">Question or clarification</label><textarea id="question" name="question" rows="3" maxlength="1000" required placeholder="What do you need clarified before continuing?"></textarea><button class="secondary-button" type="submit">Add to event trail</button></form></section>
+  <section class="briefing-section event-section"><h2>Event trail</h2>{% if events %}<ol class="event-list">{% for event in events %}<li><span class="event-dot"></span><div><strong>{{ event.kind|replace('_',' ')|title }}</strong><p>{{ event.body }}</p><small>{{ event.actor }} · {{ event.created_at }}</small></div></li>{% endfor %}</ol>{% else %}<p>No events recorded yet.</p>{% endif %}</section>
+  <div class="briefing-actions"><a class="secondary-button" href="{{ url_for('export_handoff', handoff_id=h.id) }}">↓ Export Markdown</a><button class="primary-button" type="button" onclick="window.print()">Print briefing ↗</button></div>
+  <footer class="detail-footer">Handoff · Keep the context moving. · Local demo, no account required.</footer>
+</main>
+</body>
+</html>
